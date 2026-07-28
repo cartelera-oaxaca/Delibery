@@ -1,113 +1,125 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>El Punto Delivery - San Jacinto</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Punto Delivery</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-:root{--bg:#0a0a0a;--card:#161616;--border:#2a2a2a;--border2:#3a3a3a;--white:#f5f5f5;--muted:#9a9a9a}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--white);font-family:'Segoe UI',system-ui,sans-serif}
-.velo{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;transition:.6s}
-.velo.off{opacity:0;pointer-events:none}
-#header{text-align:center;padding:18px 14px;border-bottom:1px solid var(--border)}
-#f1{font-size:12px;color:var(--muted)} #f2{font-size:14px;font-weight:600;margin-top:4px}
+:root{--bg:#0a0a0a;--card:#161616;--border:#2a2a2a;--white:#f5f5f5;--muted:#9a9a9a}
+*{margin:0;padding:0;box-sizing:border-box}body{background:var(--bg);color:var(--white);font-family:'Segoe UI',system-ui,sans-serif}
+.velo{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center}.velo.off{opacity:0;pointer-events:none}
+#a1Banner{background:#d9d9d9;color:#000;padding:14px;text-align:center;font-weight:800;font-size:16px}
+#a2Sub{font-size:12px;color:#000;margin-top:4px;font-weight:400}
 #logo{width:100%;max-width:420px;height:220px;object-fit:cover;margin:16px auto;display:block;border-radius:12px;border:1px solid var(--border)}
 #bar{padding:0 14px;display:flex;justify-content:space-between;align-items:center}
-#f5{font-size:12px;color:var(--muted)} #f6{font-size:14px;font-weight:600}
-#btnCobertura{background:#1e1e1e;color:#fff;border:1px solid var(--border2);padding:8px 14px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer}
-#banner{width:100%;margin-top:12px;border-radius:12px;overflow:hidden;border:1px solid var(--border);display:none}
-#banner img,#banner video{width:100%;display:block}
+#a5{font-size:12px;color:var(--muted)} #a6Banner{background:#a8e6a3;color:#000;padding:10px;text-align:center;font-weight:700;font-size:14px;border-radius:8px;margin:10px 14px 0 14px}
+#btnCobertura{background:#1e1e1e;color:#fff;border:1px solid #3a3a3a;padding:8px 14px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer}
+#bannerPromo{width:100%;margin:12px 0;border-radius:12px;overflow:hidden;border:1px solid var(--border);display:none}
+#bannerPromo img,#bannerPromo video{width:100%;display:block}
 #productos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px;padding-bottom:80px}
 .prod{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px;text-align:center}
 .prod img{width:100%;height:85px;object-fit:cover;border-radius:8px;background:#111;cursor:pointer}
-.prod.antes{font-size:10px;color:var(--muted);text-decoration:line-through}
-.prod.ahora{font-size:13px;font-weight:800}
+.prod.antes{font-size:10px;color:var(--muted);text-decoration:line-through}.prod.ahora{font-size:13px;font-weight:800}
 .qty{display:flex;justify-content:center;gap:8px;margin-top:6px;align-items:center}
-.qty button{width:26px;height:26px;background:#2a2a2a;color:#fff;border:1px solid #3a3a3a;border-radius:4px;font-weight:900;cursor:pointer;font-size:14px}
-#carritoBar{position:fixed;bottom:0;left:0;right:0;background:#111;border-top:1px solid var(--border2);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;z-index:1000}
-#carritoBar button{background:#fff;color:#000;border:none;padding:10px 18px;border-radius:6px;font-weight:800;cursor:pointer}
+.qty button{width:26px;height:26px;background:#2a2a2a;color:#fff;border:1px solid #3a3a3a;border-radius:4px;font-weight:900;cursor:pointer}
+#carritoBar{position:fixed;bottom:0;left:0;right:0;background:#111;border-top:1px solid #3a3a3a;padding:12px 16px;display:flex;justify-content:space-between;z-index:1000}
+#carritoBar button{background:var(--white);color:#000;border:none;padding:10px 18px;border-radius:6px;font-weight:800;cursor:pointer}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:none;align-items:center;justify-content:center;padding:14px}
-.modal.open{display:flex}
-.modalBox{background:#0f0f0f;border:1px solid var(--border2);border-radius:14px;width:100%;max-width:520px;max-height:90vh;overflow:auto}
-#map{width:100%;height:360px} #mapCobertura{width:100%;height:70vh}
+.modal.open{display:flex}.modalBox{background:#0f0f0f;border:1px solid #3a3a3a;border-radius:14px;width:100%;max-width:520px;max-height:90vh;overflow:auto}
+#map{width:100%;height:360px} #mapCobertura{width:100%;height:70vh} #frameCobertura{width:100%;height:70vh;border:none}
 </style>
-<script>
-// BLINDAJE TOTAL - EL PUNTO DELIVERY - cartelera-oaxaca.github.io/Delibery
-(() => {
-  const VALIDOS = ["cartelera-oaxaca.github.io", "localhost", "127.0.0.1"];
-  const host = location.hostname + location.pathname;
-  const ok = VALIDOS.some(d => host.includes(d)) || location.hostname === "";
-  if (!ok) {
-    document.documentElement.innerHTML = "<body style='background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;text-align:center;padding:20px'><div><h1 style='font-size:22px'>⛔ Contenido Protegido</h1><p style='margin-top:10px;color:#999'>Esta cartelera es propiedad exclusiva de<br><b style='color:#fff'>El Punto Delivery - San Jacinto Amilpas</b><br>WhatsApp 5644276032<br><br>Código con licencia privada</p></div></body>";
-    throw new Error("Dominio no autorizado - El Punto Delivery");
-  }
-  // Anti-inspección básica
-  document.addEventListener('contextmenu', e => e.preventDefault());
-  document.addEventListener('keydown', e => {
-    if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || (e.ctrlKey && e.key.toLowerCase() === 'u')) {
-      e.preventDefault(); return false;
-    }
-  });
-  console.log("%c EL PUNTO DELIVERY - CODIGO PROTEGIDO ","background:#fff;color:#000;font-size:14px;padding:6px;font-weight:900");
-})();
-</script>
 </head>
 <body>
-<!-- PROPIEDAD PRIVADA - EL PUNTO DELIVERY 2026 - WhatsApp 5644276032 -->
 <div class="velo" id="velo">Cargando El Punto...</div>
-<div id="header">
-  <div id="f1"></div><div id="f2"></div>
-  <img id="logo"><div id="bar"><div><div id="f5"></div><div id="f6"></div></div><button id="btnCobertura">VER COBERTURA</button></div>
-  <div id="banner"></div>
-</div>
+<div id="a1Banner"><span id="f1"></span><div id="a2Sub"><span id="f2"></span></div></div>
+<img id="logo"><div id="bar"><div><div id="f5"></div></div><button id="btnCobertura">VER COBERTURA</button></div>
+<div id="a6Banner"><span id="f6"></span></div>
+<div style="padding:0 14px"><div id="bannerPromo"></div></div>
 <div id="productos"></div>
 <div id="carritoBar"><span id="carritoInfo">🛒 0 productos</span><button onclick="verCarrito()">Ver carrito</button></div>
 
-<div class="modal" id="modalCobertura"><div class="modalBox"><div style="padding:12px;display:flex;justify-content:space-between"><b>Cobertura Oficial</b><button onclick="cerrar('modalCobertura')">✕</button></div><div id="mapCobertura"></div></div></div>
+<div class="modal" id="modalCobertura"><div class="modalBox"><div style="padding:12px;display:flex;justify-content:space-between"><b>Cobertura</b><button onclick="cerrar('modalCobertura')">✕</button></div><div id="mapCobertura" style="display:none"></div><iframe id="frameCobertura" style="display:none"></iframe></div></div>
 <div class="modal" id="modalCarrito"><div class="modalBox" style="padding:14px"><div style="display:flex;justify-content:space-between"><b>Tu pedido</b><button onclick="cerrar('modalCarrito')">✕</button></div><div id="resumen" style="margin:12px 0;font-size:13px"></div><b style="font-size:13px">Coloca tu pin exacto:</b><div id="map" style="margin-top:8px;border-radius:10px;border:1px solid #333"></div><p id="statusPin" style="font-size:11px;margin-top:6px;color:#aaa"></p><button id="btnWhats" style="width:100%;margin-top:12px;background:#25D366;color:#000;padding:14px;border-radius:8px;font-weight:900;border:none">Continuar a WhatsApp</button></div></div>
-<div class="modal" id="modalProd"><div class="modalBox" style="max-width:600px;height:85vh;display:flex;flex-direction:column"><div style="padding:12px;display:flex;justify-content:space-between;border-bottom:1px solid #2a2a2a"><b id="prodTitle">Producto</b><button onclick="cerrar('modalProd')" style="background:#2a2a2a;color:#fff;border:1px solid #3a3a3a;padding:6px 10px;border-radius:4px">✕</button></div><iframe id="prodFrame" style="width:100%;flex:1;border:none;border-radius:0 0 14px 14px"></iframe></div></div>
+<div class="modal" id="modalProd"><div class="modalBox" style="max-width:600px;height:85vh;display:flex;flex-direction:column"><div style="padding:12px;display:flex;justify-content:space-between;border-bottom:1px solid #2a2a2a"><b id="prodTitle">Producto</b><button onclick="cerrar('modalProd')" style="background:#2a2a2a;color:#fff;border:1px solid #3a3a3a;padding:6px 10px;border-radius:4px">✕</button></div><iframe id="prodFrame" style="width:100%;flex:1;border:none"></iframe></div></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const SHEET_ID = "1yOsHZc46GeAH4sDqjiJ8tmEecXWTCQIsQ3Xsz5TevbE";
-const WHATSAPP = "5644276032";
-const COBERTURA = [[17.067589540518618,-96.74071311950684],[17.105839557963257,-96.76165580749512],[17.10042200306545,-96.77229881286623],[17.06535457451177,-96.75159931270174]];
-let carrito={}, latEntrega=null,lngEntrega=null,pin=null,map=null,mapCob=null;
+const SHEET_ID="1yOsHZc46GeAH4sDqjiJ8tmEecXWTCQIsQ3Xsz5TevbE";
+const WHATSAPP="5644276032";
+const DOMINIO="cartelera-oaxaca.github.io";
+const COBERTURA=[[17.067589540518618,-96.74071311950684],[17.105839557963257,-96.76165580749512],[17.10042200306545,-96.77229881286623],[17.06535457451177,-96.75159931270174]];
+let carrito={},latEntrega=null,lngEntrega=null,pin=null,map=null,mapCob=null;
+
+// candado dominio
+if(!location.hostname.includes(DOMINIO) && location.hostname!=="" &&!location.hostname.includes("localhost")){
+  document.documentElement.innerHTML="<body style='background:#000;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:sans-serif'><div><h1>⛔ Contenido Protegido</h1><p>El Punto Delivery<br>WhatsApp 5644276032</p></div></body>";
+  throw new Error("Dominio no autorizado");
+}
+
+function getCell(row,col){
+  const c=row?.c[col];
+  if(!c) return "";
+  return (c.v!==undefined && c.v!==null? c.v : c.f||"").toString().trim();
+}
 
 async function cargarHoja(){
- const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
- const res=await fetch(url); const txt=await res.text();
- const json=JSON.parse(txt.substr(47).slice(0,-2)); const rows=json.table.rows;
- const get=(r,c)=> rows[r]?.c[c]?.v || "";
- document.getElementById('f1').textContent=get(0,5); document.getElementById('f2').textContent=get(1,5);
- document.getElementById('f5').textContent=get(4,5); document.getElementById('f6').textContent=get(5,5);
- const logo=get(2,5); if(logo) document.getElementById('logo').src=logo;
- const f7=get(6,5); if(f7 && f7.includes('http')){ const b=document.getElementById('banner'); b.style.display='block'; b.innerHTML=f7.includes('.mp4')?`<video src="${f7}" autoplay muted loop playsinline></video>`:`<img src="${f7}">`; }
- const cont=document.getElementById('productos'); cont.innerHTML='';
- for(let i=7;i<rows.length;i++){
-  const urlProd=rows[i].c[5]?.v||""; const antes=rows[i].c[6]?.v||""; const ahora=rows[i].c[7]?.v||"";
-  const urlDetalle=rows[i].c[4]?.v||"";
-  let urlFinal=urlProd,pAntes=antes,pAhora=ahora;
-  if(urlProd && urlProd.includes(' ') &&!antes){ const p=urlProd.split(' '); urlFinal=p[0]; pAntes=p[1]||''; pAhora=p[2]||p[1]||''; }
-  if(!urlFinal) continue;
-  const id='sku_'+i;
-  cont.innerHTML+=`<div class="prod"><img src="${urlFinal}" onclick="abrirProd('${urlDetalle}','${pAhora}')" loading="lazy"><div class="antes">${pAntes?'$'+pAntes:''}</div><div class="ahora">${pAhora?'$'+pAhora:''}</div><div class="qty"><button onclick="add('${id}',-1,'${urlFinal}','${pAhora}')">−</button><span id="q_${id}">0</span><button onclick="add('${id}',1,'${urlFinal}','${pAhora}')">+</button></div></div>`;
- }
- document.getElementById('velo').classList.add('off');
+ try{
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+  const res=await fetch(url); const txt=await res.text();
+  const json=JSON.parse(txt.substr(47).slice(0,-2)); const rows=json.table.rows;
+  // A1=0,0 A2=1,0 A3=2,0 A4=3,0 A5=4,0 A6=5,0 A7=6,0
+  const a1=getCell(rows[0],0), a2=getCell(rows[1],0), a3=getCell(rows[2],0), a4=getCell(rows[3],0), a5=getCell(rows[4],0), a6=getCell(rows[5],0), a7=getCell(rows[6],0);
+  document.getElementById('f1').textContent=a1;
+  document.getElementById('f2').textContent=a2;
+  document.getElementById('f5').textContent=a5;
+  document.getElementById('f6').textContent=a6;
+  if(a3 && a3.includes('http')) document.getElementById('logo').src=a3;
+  if(a7 && a7.toLowerCase().includes('http')){
+    const b=document.getElementById('bannerPromo'); b.style.display='block';
+    b.innerHTML=a7.toLowerCase().includes('.mp4')?`<video src="${a7}" autoplay muted loop playsinline></video>`:`<img src="${a7}">`;
+  }
+  // boton cobertura A4
+  document.getElementById('btnCobertura').onclick=()=>{
+    const urlA4=getCell(rows[3],0);
+    const modal=document.getElementById('modalCobertura');
+    modal.classList.add('open');
+    if(urlA4 && urlA4.includes('http')){
+      document.getElementById('mapCobertura').style.display='none';
+      const fr=document.getElementById('frameCobertura'); fr.style.display='block'; fr.src=urlA4;
+    }else{
+      document.getElementById('frameCobertura').style.display='none';
+      document.getElementById('mapCobertura').style.display='block';
+      setTimeout(initCobertura,200);
+    }
+  };
+  // Productos A8 hacia abajo
+  const cont=document.getElementById('productos'); cont.innerHTML='';
+  for(let i=7;i<rows.length;i++){
+    let aUrl=getCell(rows[i],0); // A8 = F8&" "&G8&" "&H8
+    let eUrl=getCell(rows[i],4); // E8 url detalle
+    if(!aUrl) continue;
+    let urlFinal=aUrl, pAntes="", pAhora="";
+    if(aUrl.includes(' ')){
+      const parts=aUrl.split(' ').filter(x=>x.trim()!=="");
+      urlFinal=parts[0]||""; pAntes=parts[1]||""; pAhora=parts[2]||parts[1]||"";
+    }
+    if(!urlFinal.includes('http')) continue;
+    const id='sku_'+i;
+    cont.innerHTML+=`<div class="prod"><img src="${urlFinal}" onclick="abrirProd('${eUrl}','${pAhora}')" loading="lazy"><div class="antes">${pAntes?'$'+pAntes:''}</div><div class="ahora">${pAhora?'$'+pAhora:''}</div><div class="qty"><button onclick="add('${id}',-1,'${urlFinal}','${pAhora}')">−</button><span id="q_${id}">0</span><button onclick="add('${id}',1,'${urlFinal}','${pAhora}')">+</button></div></div>`;
+  }
+  document.getElementById('velo').classList.add('off');
+ }catch(e){ console.log(e); document.getElementById('velo').classList.add('off'); }
 }
-function abrirProd(url,precio){ if(!url||!url.includes('http')) return; document.getElementById('prodTitle').textContent='Producto $'+precio; document.getElementById('prodFrame').src=url; document.getElementById('modalProd').classList.add('open'); }
-function add(id,delta,url,precio){ if(!carrito[id]) carrito[id]={q:0,url,precio}; carrito[id].q+=delta; if(carrito[id].q<0) carrito[id].q=0; document.getElementById('q_'+id).textContent=carrito[id].q; actualizarBar(); }
-function actualizarBar(){ let q=0,t=0; Object.values(carrito).forEach(p=>{q+=p.q; t+=p.q*parseFloat(p.precio||0)}); document.getElementById('carritoInfo').textContent=`🛒 ${q} productos - $${t.toFixed(2)}`; }
-function verCarrito(){ let h='',tot=0; Object.values(carrito).forEach(v=>{if(v.q>0){tot+=v.q*parseFloat(v.precio||0); h+=`${v.q}x $${v.precio}<br>`}}); if(!h){alert('Carrito vacío');return;} document.getElementById('resumen').innerHTML=h+`<hr><b>Total: $${tot.toFixed(2)}</b>`; document.getElementById('modalCarrito').classList.add('open'); setTimeout(initMap,300); }
-function cerrar(id){ document.getElementById(id).classList.remove('open'); if(id==='modalProd') document.getElementById('prodFrame').src=''; }
-document.getElementById('btnCobertura').onclick=()=>{ document.getElementById('modalCobertura').classList.add('open'); setTimeout(initCobertura,300); };
-function initCobertura(){ if(mapCob) return; mapCob=L.map('mapCobertura').setView([17.0857,-96.7565],15); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(mapCob); L.polygon(COBERTURA,{color:'#fff',weight:2,fillOpacity:.15}).addTo(mapCob); mapCob.fitBounds(COBERTURA); }
-function initMap(){ if(map){map.invalidateSize();return;} map=L.map('map').setView([17.0857,-96.7565],16); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map); L.polygon(COBERTURA,{color:'#25D366',weight:2,fillOpacity:.1}).addTo(map); map.fitBounds(COBERTURA); pin=L.marker([17.0857,-96.7565],{draggable:true}).addTo(map); latEntrega=17.0857; lngEntrega=-96.7565; pin.on('dragend',e=>{latEntrega=e.target.getLatLng().lat; lngEntrega=e.target.getLatLng().lng; checkPin();}); map.on('click',e=>{pin.setLatLng(e.latlng); latEntrega=e.latlng.lat; lngEntrega=e.latlng.lng; checkPin();}); checkPin(); }
-function checkPin(){ const dentro=puntoEnPoligono({lat:latEntrega,lng:lngEntrega},COBERTURA); document.getElementById('statusPin').innerHTML=dentro?'✅ Dentro de cobertura':'❌ Fuera de cobertura'; document.getElementById('btnWhats').disabled=!dentro; }
-function puntoEnPoligono(p,vs){ let x=p.lat,y=p.lng,inside=false; for(let i=0,j=vs.length-1;i<vs.length;j=i++){ let xi=vs[i][0],yi=vs[i][1],xj=vs[j][0],yj=vs[j][1]; let inter=((yi>y)!=(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi); if(inter) inside=!inside; } return inside; }
-document.getElementById('btnWhats').onclick=()=>{ let txt=`Hola El Punto! Quiero pedir:%0A`; Object.values(carrito).forEach(v=>{if(v.q>0) txt+=`%0A${v.q}x - $${v.precio} - ${v.url}`;}); txt+=`%0A%0A📍 Mi pin: https://www.google.com/maps?q=${latEntrega},${lngEntrega}%0A`; window.open(`https://wa.me/${WHATSAPP}?text=${txt}`,'_blank'); };
+function abrirProd(u,p){if(!u||!u.includes('http'))return;document.getElementById('prodTitle').textContent='Producto $'+p;document.getElementById('prodFrame').src=u;document.getElementById('modalProd').classList.add('open');}
+function add(id,d,url,precio){if(!carrito[id])carrito[id]={q:0,url,precio};carrito[id].q+=d;if(carrito[id].q<0)carrito[id].q=0;document.getElementById('q_'+id).textContent=carrito[id].q;actualizarBar();}
+function actualizarBar(){let q=0,t=0;Object.values(carrito).forEach(p=>{q+=p.q;t+=p.q*parseFloat(p.precio||0)});document.getElementById('carritoInfo').textContent=`🛒 ${q} productos - $${t.toFixed(2)}`;}
+function verCarrito(){let h='',tot=0;Object.values(carrito).forEach(v=>{if(v.q>0){tot+=v.q*parseFloat(v.precio||0);h+=`${v.q}x $${v.precio}<br>`}});if(!h){alert('Carrito vacío');return;}document.getElementById('resumen').innerHTML=h+`<hr><b>Total: $${tot.toFixed(2)}</b>`;document.getElementById('modalCarrito').classList.add('open');setTimeout(initMap,300);}
+function cerrar(id){document.getElementById(id).classList.remove('open');if(id==='modalProd')document.getElementById('prodFrame').src='';if(id==='modalCobertura')document.getElementById('frameCobertura').src='';}
+function initCobertura(){if(mapCob)return;mapCob=L.map('mapCobertura').setView([17.0857,-96.7565],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(mapCob);L.polygon(COBERTURA,{color:'#fff',weight:2,fillOpacity:.15}).addTo(mapCob);mapCob.fitBounds(COBERTURA);}
+function initMap(){if(map){map.invalidateSize();return;}map=L.map('map').setView([17.0857,-96.7565],16);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);L.polygon(COBERTURA,{color:'#25D366',weight:2,fillOpacity:.1}).addTo(map);map.fitBounds(COBERTURA);pin=L.marker([17.0857,-96.7565],{draggable:true}).addTo(map);latEntrega=17.0857;lngEntrega=-96.7565;pin.on('dragend',e=>{latEntrega=e.target.getLatLng().lat;lngEntrega=e.target.getLatLng().lng;checkPin();});map.on('click',e=>{pin.setLatLng(e.latlng);latEntrega=e.latlng.lat;lngEntrega=e.latlng.lng;checkPin();});checkPin();}
+function checkPin(){const dentro=puntoEnPoligono({lat:latEntrega,lng:lngEntrega},COBERTURA);document.getElementById('statusPin').innerHTML=dentro?'✅ Dentro de cobertura':'❌ Fuera de cobertura';document.getElementById('btnWhats').disabled=!dentro;}
+function puntoEnPoligono(p,vs){let x=p.lat,y=p.lng,inside=false;for(let i=0,j=vs.length-1;i<vs.length;j=i++){let xi=vs[i][0],yi=vs[i][1],xj=vs[j][0],yj=vs[j][1];let inter=((yi>y)!=(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi);if(inter)inside=!inside;}return inside;}
+document.getElementById('btnWhats').onclick=()=>{let txt=`Hola El Punto! Quiero pedir:%0A`;Object.values(carrito).forEach(v=>{if(v.q>0)txt+=`%0A${v.q}x - $${v.precio} - ${v.url}`;});txt+=`%0A%0A📍 Mi pin: https://www.google.com/maps?q=${latEntrega},${lngEntrega}%0A`;window.open(`https://wa.me/${WHATSAPP}?text=${txt}`,'_blank');};
 cargarHoja();
 </script>
 </body>
