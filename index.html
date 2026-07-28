@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>El Punto Delivery</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{--bg:#0a0a0a;--card:#161616;--border:#2a2a2a;--border2:#3a3a3a;--white:#f5f5f5;--muted:#9a9a9a;--accent:#ffffff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--white);font-family:'Segoe UI',system-ui,sans-serif;overflow-x:hidden}
+.velo{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;transition:.6s}
+.velo.off{opacity:0;pointer-events:none}
+#header{text-align:center;padding:18px 14px;border-bottom:1px solid var(--border)}
+#f1{font-size:12px;color:var(--muted);letter-spacing:.8px}
+#f2{font-size:14px;font-weight:600;margin-top:4px}
+#logo{width:100%;max-width:420px;height:220px;object-fit:cover;margin:16px auto;display:block;border-radius:12px;border:1px solid var(--border)}
+#bar{padding:0 14px;display:flex;justify-content:space-between;align-items:center}
+#f5{font-size:12px;color:var(--muted)} #f6{font-size:14px;font-weight:600}
+#btnCobertura{background:var(--white);color:#000;border:1px solid var(--border2);padding:8px 14px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer}
+#banner{width:100%;margin-top:12px;border-radius:12px;overflow:hidden;border:1px solid var(--border);display:none}
+#banner img,#banner video{width:100%;display:block}
+#productos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px}
+@media(max-width:600px){#productos{grid-template-columns:repeat(3,1fr)}}
+.prod{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px;text-align:center}
+.prod img{width:100%;height:85px;object-fit:cover;border-radius:8px;background:#111}
+.prod .antes{font-size:10px;color:var(--muted);text-decoration:line-through}
+.prod .ahora{font-size:13px;font-weight:800}
+.qty{display:flex;justify-content:center;gap:8px;margin-top:6px}
+.qty button{width:24px;height:24px;background:var(--white);color:#000;border:1px solid var(--border2);border-radius:4px;font-weight:900;cursor:pointer}
+#carritoBar{position:fixed;bottom:0;left:0;right:0;background:#111;border-top:1px solid var(--border2);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;z-index:1000}
+#carritoBar button{background:var(--white);color:#000;border:none;padding:10px 18px;border-radius:6px;font-weight:800;cursor:pointer}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:2000;display:none;align-items:center;justify-content:center;padding:14px}
+.modal.open{display:flex}
+.modalBox{background:#0f0f0f;border:1px solid var(--border2);border-radius:14px;width:100%;max-width:520px;max-height:90vh;overflow:auto}
+#map{width:100%;height:360px}
+#mapCobertura{width:100%;height:70vh}
+</style>
+</head>
+<body>
+<div class="velo" id="velo">Cargando El Punto...</div>
+
+<div id="header">
+  <div id="f1">CARGANDO...</div>
+  <div id="f2"></div>
+  <img id="logo">
+  <div id="bar">
+    <div><div id="f5"></div><div id="f6"></div></div>
+    <button id="btnCobertura">VER COBERTURA</button>
+  </div>
+  <div id="banner"></div>
+</div>
+
+<div id="productos"></div>
+
+<div id="carritoBar">
+  <span id="carritoInfo">🛒 0 productos</span>
+  <button onclick="verCarrito()">Ver carrito</button>
+</div>
+
+<!-- MODAL COBERTURA -->
+<div class="modal" id="modalCobertura"><div class="modalBox"><div style="padding:12px;display:flex;justify-content:space-between"><b>Cobertura Oficial</b><button onclick="cerrar('modalCobertura')">✕</button></div><div id="mapCobertura"></div></div></div>
+
+<!-- MODAL CARRITO + MAPA PIN -->
+<div class="modal" id="modalCarrito"><div class="modalBox" style="padding:14px">
+  <div style="display:flex;justify-content:space-between"><b>Tu pedido</b><button onclick="cerrar('modalCarrito')">✕</button></div>
+  <div id="resumen" style="margin:12px 0;font-size:13px;line-height:1.5"></div>
+  <b style="font-size:13px">Coloca tu pin exacto de entrega:</b>
+  <div id="map" style="margin-top:8px;border-radius:10px;border:1px solid #333"></div>
+  <p id="statusPin" style="font-size:11px;margin-top:6px;color:#aaa"></p>
+  <button id="btnWhats" style="width:100%;margin-top:12px;background:#25D366;color:#000;padding:14px;border-radius:8px;font-weight:900;border:none">Continuar a WhatsApp</button>
+</div></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const SHEET_ID = "1yOsHZc46GeAH4sDqjiJ8tmEecXWTCQIsQ3Xsz5TevbE";
+const WHATSAPP = "5644276032";
+const COBERTURA = [[17.067589540518618,-96.74071311950684],[17.105839557963257,-96.76165580749512],[17.10042200306545,-96.77229881286623],[17.06535457451177,-96.75159931270174]];
+
+let carrito = {};
+let latEntrega=null,lngEntrega=null, pin=null, map=null, mapCob=null;
+
+async function cargarHoja(){
+ try{
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+  const res = await fetch(url);
+  const txt = await res.text();
+  const json = JSON.parse(txt.substr(47).slice(0,-2));
+  const rows = json.table.rows;
+  const get = (r,c)=> rows[r]?.c[c]?.v || "";
+
+  // F1..F7 son columna F = indice 5
+  document.getElementById('f1').textContent = get(0,5);
+  document.getElementById('f2').textContent = get(1,5);
+  document.getElementById('f5').textContent = get(4,5);
+  document.getElementById('f6').textContent = get(5,5);
+  const logoUrl = get(2,5);
+  if(logoUrl) document.getElementById('logo').src = logoUrl;
+  
+  const f7 = get(6,5);
+  if(f7 && (f7.includes('http'))){
+    const banner = document.getElementById('banner');
+    banner.style.display='block';
+    if(f7.includes('.mp4')) banner.innerHTML = `<video src="${f7}" autoplay muted loop playsinline></video>`;
+    else banner.innerHTML = `<img src="${f7}">`;
+  }
+
+  // Productos desde fila 8 (indice 7) en adelante: F = url, G = antes, H = ahora
+  const cont = document.getElementById('productos');
+  cont.innerHTML='';
+  for(let i=7;i<rows.length;i++){
+    const urlProd = rows[i].c[5]?.v || ""; // F
+    const antes = rows[i].c[6]?.v || ""; // G
+    const ahora = rows[i].c[7]?.v || ""; // H
+    // Si F8 ya viene concatenado tipo "url precioAntes precioAhora"
+    let urlFinal = urlProd, pAntes=antes, pAhora=ahora;
+    if(urlProd && urlProd.includes(' ') && !antes){
+      const parts = urlProd.split(' ');
+      urlFinal = parts[0]; pAntes = parts[1]||''; pAhora = parts[2]||parts[1]||'';
+    }
+    if(!urlFinal) continue;
+    const id = 'sku_'+i;
+    cont.innerHTML+=`
+      <div class="prod">
+        <img src="${urlFinal}" loading="lazy" onerror="this.src='https://via.placeholder.com/150'">
+        <div class="antes">${pAntes? '$'+pAntes:''}</div>
+        <div class="ahora">${pAhora? '$'+pAhora:'Ver'}</div>
+        <div class="qty">
+          <button onclick="add('${id}',-1,'${urlFinal}','${pAhora}')">-</button>
+          <span id="q_${id}">0</span>
+          <button onclick="add('${id}',1,'${urlFinal}','${pAhora}')">+</button>
+        </div>
+      </div>`;
+  }
+  document.getElementById('velo').classList.add('off');
+ }catch(e){
+  console.log(e);
+  document.getElementById('f1').textContent="EL PUNTO DELIVERY - SAN JACINTO";
+  document.getElementById('f2').textContent="Entrega en Plaza Bella, Arenal, Azteca, Nuevo México, Pintores";
+  document.getElementById('velo').classList.add('off');
+ }
+}
+
+function add(id,delta,url,precio){
+  if(!carrito[id]) carrito[id]={q:0,url,precio};
+  carrito[id].q+=delta;
+  if(carrito[id].q<0) carrito[id].q=0;
+  document.getElementById('q_'+id).textContent=carrito[id].q;
+  actualizarBar();
+}
+function actualizarBar(){
+  let totalQ=0, totalP=0;
+  Object.values(carrito).forEach(p=>{totalQ+=p.q; totalP+=p.q*parseFloat(p.precio||0)});
+  document.getElementById('carritoInfo').textContent=`🛒 ${totalQ} productos - $${totalP.toFixed(2)}`;
+}
+function verCarrito(){
+  let html='', total=0;
+  Object.entries(carrito).forEach(([k,v])=>{
+    if(v.q>0){ total+=v.q*parseFloat(v.precio||0); html+=`${v.q}x $${v.precio} <br>`; }
+  });
+  if(!html){ alert('Carrito vacío'); return; }
+  document.getElementById('resumen').innerHTML=html+`<hr><b>Total: $${total.toFixed(2)}</b>`;
+  document.getElementById('modalCarrito').classList.add('open');
+  setTimeout(initMap,300);
+}
+function cerrar(id){ document.getElementById(id).classList.remove('open'); }
+
+document.getElementById('btnCobertura').onclick=()=>{
+  document.getElementById('modalCobertura').classList.add('open');
+  setTimeout(initCobertura,300);
+};
+
+function initCobertura(){
+ if(mapCob) return;
+ mapCob = L.map('mapCobertura').setView([17.0857,-96.7565],15);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(mapCob);
+ L.polygon(COBERTURA,{color:'#fff',weight:2,fillOpacity:.15}).addTo(mapCob);
+ mapCob.fitBounds(COBERTURA);
+}
+
+function initMap(){
+ if(map) { map.invalidateSize(); return; }
+ map = L.map('map').setView([17.0857,-96.7565],16);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+ L.polygon(COBERTURA,{color:'#25D366',weight:2,fillOpacity:.1}).addTo(map);
+ map.fitBounds(COBERTURA);
+ pin = L.marker([17.0857,-96.7565],{draggable:true}).addTo(map);
+ latEntrega=17.0857; lngEntrega=-96.7565;
+ pin.on('dragend',e=>{ latEntrega=e.target.getLatLng().lat; lngEntrega=e.target.getLatLng().lng; checkPin(); });
+ map.on('click',e=>{ pin.setLatLng(e.latlng); latEntrega=e.latlng.lat; lngEntrega=e.latlng.lng; checkPin(); });
+ checkPin();
+}
+function checkPin(){
+  const dentro = puntoEnPoligono({lat:latEntrega,lng:lngEntrega}, COBERTURA);
+  document.getElementById('statusPin').innerHTML = dentro? '✅ Dentro de cobertura':'❌ Fuera de cobertura';
+  document.getElementById('btnWhats').disabled = !dentro;
+}
+function puntoEnPoligono(p, vs){
+ let x=p.lat,y=p.lng,inside=false;
+ for(let i=0,j=vs.length-1;i<vs.length;j=i++){
+  let xi=vs[i][0],yi=vs[i][1],xj=vs[j][0],yj=vs[j][1];
+  let inter=((yi>y)!=(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi);
+  if(inter) inside=!inside;
+ } return inside;
+}
+
+document.getElementById('btnWhats').onclick=()=>{
+  let texto = `Hola El Punto! Quiero pedir:%0A`;
+  Object.values(carrito).forEach(v=>{ if(v.q>0) texto+=`%0A${v.q}x - $${v.precio} - ${v.url}`; });
+  texto+=`%0A%0A📍 Mi pin: https://www.google.com/maps?q=${latEntrega},${lngEntrega}%0A`;
+  window.open(`https://wa.me/${WHATSAPP}?text=${texto}`,'_blank');
+};
+
+cargarHoja();
+</script>
+</body>
+</html>
